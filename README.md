@@ -1,63 +1,31 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/skx/rss2hook)](https://goreportcard.com/report/github.com/skx/rss2hook)
-[![license](https://img.shields.io/github/license/skx/rss2hook.svg)](https://github.com/skx/rss2hook/blob/master/LICENSE)
-[![Release](https://img.shields.io/github/release/skx/rss2hook.svg)](https://github.com/skx/rss2hook/releases/latest)
+[![license](https://img.shields.io/github/license/revilo732/rss2webex-hook.svg)](https://github.com/revilo732/rss2webex-hook/blob/master/LICENSE)
 
-* [RSS2Hook](#rss2hook)
-* [Rational](#rational)
-* [Installation](#installation)
-  * [Build without Go Modules (Go before 1.11)](#build-without-go-modules-go-before-111)
-  * [Build with Go Modules (Go 1.11 or higher)](#build-with-go-modules-go-111-or-higher)
-* [Setup](#setup)
-  * [Sample Webhook Receiver](#sample-webhook-receiver)
-* [Implementation Notes](#implementation-notes)
-* [Github Setup](#github-setup)
-
-
-# RSS2Hook
+# RSS2Webex-Hook
 
 This project is a self-hosted utility which will make HTTP POST
-requests to remote web-hooks when new items appear in an RSS feed.
+requests to Webex chanels when new items appear in an RSS feed.
 
+## Credit
 
-
-## Rational
-
-I have a couple of webhooks in-place already which will take incoming
-HTTP submissions and "do stuff" with them, for example:
-
-* Posting to my alerting system.
-   * Which is called [purppura](https://github.com/skx/purppura/) and is pretty neat.
-* Posting to IRC.
-   * IRC was mattermost before slack before born.
-
-I _also_ have a bunch of RSS feeds that I follow, typically these include
-github releases of projects.  For example my git-host runs [gitbucket](https://github.com/gitbucket/gitbucket) so I subscribe to the release feed of that, to ensure I'm always up to date:
-
-* https://github.com/gitbucket/gitbucket/releases.atom
+This is just a slightly modified version of the [rss2hook](https://github.com/skx/rss2hook) repo, tailored for Webex.
 
 
 ## Installation
 
-There are two ways to install this project from source, which depend on the version of the [go](https://golang.org/) version you're using.
 
-If you prefer you can fetch a binary from [our release page](https://github.com/skx/rss2hook/releases).  Currently there is only a binary for Linux (amd64) due to the use of `cgo` in our dependencies.
+## Build with Go Modules (Go 1.11 or higher) - golang.org  
 
-## Build without Go Modules (Go before 1.11)
-
-    go get -u github.com/skx/rss2hook
-
-## Build with Go Modules (Go 1.11 or higher)
-
-    git clone https://github.com/skx/rss2hook ;# make sure to clone outside of GOPATH
-    cd rss2hook
+    git clone https://github.com/revilo732/rss2webex-hook ;# make sure to clone outside of GOPATH
+    cd rss2webex-hook
     go install
 
 
 
 ## Setup
 
-There are two parts to the setup:
+There are three parts to the setup:
 
+* [Create webhook url for room](https://apphub.webex.com/applications/incoming-webhooks-cisco-systems-38054-23307-75252)
 * Configure the list of feeds and the corresponding hooks to POST to.
 * Ensure the program is running.
 
@@ -109,17 +77,3 @@ upon startup.
    * Beneath the directory `~/.rss2hook/seen/`.
 * Feed items are submitted to the webhook as JSON.
 
-
-
-## Github Setup
-
-This repository is configured to run tests upon every commit, and when
-pull-requests are created/updated.  The testing is carried out via
-[.github/run-tests.sh](.github/run-tests.sh) which is used by the
-[github-action-tester](https://github.com/skx/github-action-tester) action.
-
-Releases are automated in a similar fashion via [.github/build](.github/build),
-and the [github-action-publish-binaries](https://github.com/skx/github-action-publish-binaries) action.
-
-Steve
---

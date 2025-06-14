@@ -47,58 +47,57 @@ var Timeout time.Duration
 
 // loadConfig loads the named configuration file and populates our
 // `Loaded` list of RSS-feeds & Webhook addresses
+
+//ADDON2 
 func loadConfig(filename string) {
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Printf("Error opening %s - %s\n", filename, err.Error())
-		return
-	}
-	defer file.Close()
+    file, err := os.Open(filename)
+    if err != nil {
+        fmt.Printf("Error opening %s - %s\n", filename, err.Error())
+        return
+    }
+    defer file.Close()
 
-	//
-	// Process it line by line.
-	//
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
+    //
+    // Process it line by line.
+    //
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        // Get the next line, and strip leading/trailing space
+        tmp := scanner.Text()
+        tmp = strings.TrimSpace(tmp)
 
-		// Get the next line, and strip leading/trailing space
-		tmp := scanner.Text()
-		tmp = strings.TrimSpace(tmp)
+        // Skip lines that begin with a comment.
+        if (tmp != "") && (!strings.HasPrefix(tmp, "#")) {
+            // Change the regex pattern to split on the last '=' character
+            parser := regexp.MustCompile("^(.*)=(.*)$")
+            match := parser.FindStringSubmatch(tmp)
 
-		//
-		// Skip lines that begin with a comment.
-		//
-		if (tmp != "") && (!strings.HasPrefix(tmp, "#")) {
+            // OK we found a suitable entry.
+            if len(match) == 3 {
+                feed := strings.TrimSpace(match[1])
+                hook := strings.TrimSpace(match[2])
 
-			//
-			// Otherwise find the feed + post-point
-			//
-			parser := regexp.MustCompile("^(.+?)=([^=].+)")
-			match := parser.FindStringSubmatch(tmp)
-
-			//
-			// OK we found a suitable entry.
-			//
-			if len(match) == 3 {
-
-				feed := strings.TrimSpace(match[1])
-				hook := strings.TrimSpace(match[2])
-
-				// Append the new entry to our list
-				entry := RSSEntry{feed: feed, hook: hook}
-				Loaded = append(Loaded, entry)
-			}
-
-		}
-	}
-
+                // Append the new entry to our list
+                entry := RSSEntry{feed: feed, hook: hook}
+                Loaded = append(Loaded, entry)
+            }
+        }
+    }
 }
+//ADDON2vege
+
 
 // fetchFeed fetches the contents of the specified URL.
 func fetchFeed(url string) (string, error) {
 
+	//HTTP2 kikapcs
 	// Ensure we setup a timeout for our fetch
-	client := &http.Client{Timeout: Timeout}
+	client := &http.Client{
+    Transport: &http.Transport{
+        ForceAttemptHTTP2: false, // Disable HTTP/2
+    },
+    Timeout: Timeout,
+}
 
 	// We'll only make a GET request
 	req, err := http.NewRequest("GET", url, nil)
@@ -107,7 +106,7 @@ func fetchFeed(url string) (string, error) {
 	}
 
 	// We ensure we identify ourself.
-	req.Header.Set("User-Agent", "rss2email (https://github.com/skx/rss2email)")
+	req.Header.Set("User-Agent", "BasicAgent")
 
 	// Make the request
 	resp, err := client.Do(req)
@@ -211,47 +210,48 @@ func checkFeeds() {
 // notify actually submits the specified item to the remote webhook.
 //
 // The RSS-item is submitted as a JSON-object.
-func notify(hook string, item *gofeed.Item) error {
-
-	// We'll post the item as a JSON object.
-	// So first of all encode it.
-	jsonValue, err := json.Marshal(item)
-	if err != nil {
-		fmt.Printf("notify: Failed to encode JSON:%s\n", err.Error())
-		return err
+    //ADDON START
+	func notify(hook string, item *gofeed.Item) error {
+		// Convert the item to a string format, including title and description for the markdown content.
+		data := fmt.Sprintf("[**%s**](%s)\n%s", item.Title, item.Link, item.Description)
+	
+		// Create the payload as a map and marshal it into JSON
+		payload := map[string]string{"markdown": data}
+		jsonValue, err := json.Marshal(payload)
+		if err != nil {
+			fmt.Printf("notify: Failed to encode JSON: %s\n", err.Error())
+			return err
+		}
+	
+		// Create a new HTTP request
+		req, err := http.NewRequest("POST", hook, bytes.NewBuffer(jsonValue))
+		if err != nil {
+			fmt.Printf("notify: Failed to create request: %s\n", err.Error())
+			return err
+		}
+	
+		// Set the Content-Type header
+		req.Header.Set("Content-Type", "application/json")
+	
+		// Send the request using the HTTP client
+		client := &http.Client{}
+		res, err := client.Do(req)
+		if err != nil {
+			fmt.Printf("notify: Failed to POST to %s - %s\n", hook, err.Error())
+			return err
+		}
+		defer res.Body.Close()
+	
+		// Check the response status
+		status := res.StatusCode
+		if status != 200 {
+			// Read the response body to get more error information
+			body, _ := ioutil.ReadAll(res.Body)
+			fmt.Printf("notify: Warning - Status code was not 200: %d, Response body: %s\n", status, string(body))
+		}
+		return nil
 	}
-
-	//
-	// Post to the specified hook URL.
-	//
-	res, err := http.Post(hook,
-		"application/json",
-		bytes.NewBuffer(jsonValue))
-
-	if err != nil {
-		fmt.Printf("notify: Failed to POST to %s - %s\n",
-			hook, err.Error())
-		return err
-	}
-
-	//
-	// OK now we've submitted the post.
-	//
-	// We should retrieve the status-code + body, if the status-code
-	// is "odd" then we'll show them.
-	//
-	defer res.Body.Close()
-	_, err = ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-	status := res.StatusCode
-
-	if status != 200 {
-		fmt.Printf("notify: Warning - Status code was not 200: %d\n", status)
-	}
-	return nil
-}
+	//ADDON END
 
 // main is our entry-point
 func main() {
